@@ -15,7 +15,10 @@ minecraft-server/
 
 ## Setup (One-Time)
 
-### Step 1: Install GitHub Runner on Your Home Server
+### Step 1: Setup Repository
+1. **Clone this Repo**
+
+### Step 2: Install GitHub Runner on Your Home Server
 
 1. **SSH into your home server**
 
@@ -57,31 +60,6 @@ sudo ./svc.sh start
 7. **Verify runner is online**:
    - Go to your repo → **Settings** → **Actions** → **Runners**
    - You should see your runner with a green dot (Idle)
-
-### Step 2: Setup Repository
-
-1. **Create new GitHub repository**
-
-2. **Clone and add files**:
-```bash
-git clone https://github.com/YOUR-USERNAME/minecraft-server.git
-cd minecraft-server
-
-# Add these 4 files:
-# - .github/workflows/deploy.yml
-# - Dockerfile
-# - server.properties
-# - README.md
-```
-
-3. **Push to GitHub**:
-```bash
-git add .
-git commit -m "Initial setup"
-git push
-```
-
----
 
 ## Usage
 
