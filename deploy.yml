@@ -1,0 +1,37 @@
+name: Deploy Minecraft Server
+
+on:
+  workflow_dispatch:  # Click "Run workflow" button in GitHub Actions
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Stop existing server
+        run: docker stop minecraft-server 2>/dev/null || true
+      
+      - name: Remove old container
+        run: docker rm minecraft-server 2>/dev/null || true
+      
+      - name: Build Docker image
+        run: docker build -t minecraft-server .
+      
+      - name: Start Minecraft server
+        run: |
+          docker run -d \
+            --name minecraft-server \
+            --restart unless-stopped \
+            -p 22000:22000 \
+            -p 22001:22001 \
+            -v minecraft-world:/minecraft/world \
+            minecraft-server
+      
+      - name: Show server status
+        run: |
+          sleep 10
+          docker logs minecraft-server --tail 30
+          echo "✅ Server deployed! Connect at: <your-ip>:22000"
