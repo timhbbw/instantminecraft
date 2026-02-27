@@ -1,205 +1,257 @@
 # Minecraft Server - One-Click Deployment
 
-Deploy Minecraft server to your home server with one button click using GitHub Actions self-hosted runner.
+Deploy Minecraft server to your home server with one button click using GitHub Actions or GitLab CI/CD.
 
 ## Project Files
+
+### For GitHub:
 ```
 minecraft-server/
-├── .github/workflows/deploy.yml  # Deployment automation
-├── Dockerfile                     # Server container
-├── server.properties              # Your server config
-└── README.md                      # This file
+├── .github/workflows/deploy.yml
+├── Dockerfile
+├── server.properties
+└── README.md
+```
+
+### For GitLab:
+```
+minecraft-server/
+├── .gitlab-ci.yml
+├── Dockerfile
+├── server.properties
+└── README.md
 ```
 
 ---
 
 ## Setup (One-Time)
 
-### Step 1: Setup Repository
-1. **Clone this Repo**
+# GitHub Setup
 
-### Step 2: Install GitHub Runner on Your Home Server
+### Step 1: Install GitHub Runner on Your Home Server
 
-1. **SSH into your home server**
-
-2. **Install Docker** (if not installed):
+1. **Install Docker**:
 ```bash
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
 sudo usermod -aG docker $USER
+newgrp docker
 ```
 
-3. **Create runner directory**:
+2. **Create runner directory**:
 ```bash
 mkdir -p ~/actions-runner && cd ~/actions-runner
 ```
 
-4. **Download GitHub Runner**:
+3. **Download GitHub Runner**:
 ```bash
-# For Linux x64
 curl -o actions-runner-linux-x64-2.311.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.311.0/actions-runner-linux-x64-2.311.0.tar.gz
 tar xzf ./actions-runner-linux-x64-2.311.0.tar.gz
 ```
 
-5. **Configure Runner**:
-   - Go to your GitHub repo → **Settings** → **Actions** → **Runners** → **New self-hosted runner**
-   - Copy the configuration command and run it:
+4. **Configure Runner**:
+   - Go to GitHub repo → **Settings** → **Actions** → **Runners** → **New self-hosted runner**
+   - Run the configuration command provided:
 ```bash
 ./config.sh --url https://github.com/YOUR-USERNAME/minecraft-server --token YOUR-TOKEN
 ```
-   - When asked "Enter name of runner": press Enter (default)
-   - When asked "Enter any additional labels": press Enter
-   - When asked "Enter name of work folder": press Enter
 
-6. **Install and start runner as a service**:
+5. **Start runner as service**:
 ```bash
 sudo ./svc.sh install
 sudo ./svc.sh start
 ```
 
-7. **Verify runner is online**:
-   - Go to your repo → **Settings** → **Actions** → **Runners**
-   - You should see your runner with a green dot (Idle)
+### Step 2: Push to GitHub
+```bash
+git add .
+git commit -m "Initial setup"
+git push
+```
+
+### Deploy on GitHub
+1. Go to **Actions** tab
+2. Click **Deploy Minecraft Server**
+3. Click **Run workflow**
+
+---
+
+# GitLab Setup
+
+### Step 1: Install GitLab Runner on Your Home Server
+
+1. **Install Docker**:
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+2. **Install GitLab Runner**:
+```bash
+curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" | sudo bash
+sudo apt-get install gitlab-runner
+```
+
+3. **Register Runner**:
+   - Go to GitLab project → **Settings** → **CI/CD** → **Runners**
+   - Click **New project runner**, add tag `minecraft`, copy token
+```bash
+sudo gitlab-runner register
+```
+   - URL: `https://gitlab.com`
+   - Token: (paste token)
+   - Tags: `minecraft`
+   - Executor: `shell`
+
+4. **Add runner to docker group**:
+```bash
+sudo usermod -aG docker gitlab-runner
+sudo systemctl restart gitlab-runner
+```
+
+### Step 2: Push to GitLab
+```bash
+git add .
+git commit -m "Initial setup"
+git push
+```
+
+### Deploy on GitLab
+1. Go to **CI/CD** → **Pipelines**
+2. Click **Run pipeline**
+3. Click **Play** button (▶)
+
+---
 
 ## Usage
 
-### Deploy Server (One Click!)
+### Deploy Server
+- **GitHub**: Actions → Run workflow
+- **GitLab**: CI/CD → Pipelines → Run → Play
 
-1. Go to your GitHub repo
-2. Click **Actions** tab
-3. Click **Deploy Minecraft Server** workflow
-4. Click **Run workflow** dropdown
-5. Click green **Run workflow** button
-
-That's it! Your server will:
-- Build the Docker image
-- Stop old server (if running)
-- Start new server
-- Show you the logs
-
-**Connection:** `<your-home-ip>:22000`
-
-### Check Server Status
-
+### Check Status
 ```bash
-# On your home server
 docker logs minecraft-server
 docker ps
 ```
 
-### Stop Server
-
+### Stop/Start
 ```bash
 docker stop minecraft-server
+docker start minecraft-server
 ```
 
-### Manual Start (without GitHub)
-
+### Access Server Console
+The server runs in a `screen` session inside the container:
 ```bash
-docker start minecraft-server
+# Attach to console
+docker exec -it minecraft-server screen -r minecraft
+
+# Detach from console (keep server running)
+# Press: Ctrl+A then D
+```
+
+Commands you can run in console:
+```
+/list                    # Show online players
+/say <message>           # Broadcast message
+/op <player>             # Make player operator
+/stop                    # Stop server
+/save-all                # Save world
+/whitelist add <player>  # Add to whitelist
 ```
 
 ---
 
-## Server Configuration
+## Server Info
 
-Edit `server.properties` and push to GitHub. Next deployment will use new settings.
+**Connection:** `<your-home-ip>:22000`
 
-Current settings:
-- **Port:** 22000
-- **RCON Port:** 22001
-- **RCON Password:** password
-- **Max Players:** 20
-- **Gamemode:** Survival
+**Settings:**
+- Port: 22000
+- RCON Port: 22001
+- RCON Password: password
+- Max Players: 20
+
+Edit `server.properties` and push to deploy changes.
 
 ---
 
 ## Troubleshooting
 
-### Runner Not Showing in GitHub
+### GitHub Runner
 ```bash
-# Check runner status
 cd ~/actions-runner
 sudo ./svc.sh status
-
-# Restart runner
-sudo ./svc.sh stop
-sudo ./svc.sh start
+sudo ./svc.sh restart
 ```
 
-### Port Already in Use
+### GitLab Runner
 ```bash
-# Find and stop the process
-sudo netstat -tulpn | grep 22000
-docker stop minecraft-server
+sudo gitlab-runner status
+sudo gitlab-runner restart
 ```
 
-### Can't Connect to Server
+### Firewall
 ```bash
-# Check firewall
 sudo ufw allow 22000/tcp
 sudo ufw allow 22001/tcp
-
-# Check if server is running
-docker ps | grep minecraft
-docker logs minecraft-server
-```
-
-### Update Runner
-```bash
-cd ~/actions-runner
-sudo ./svc.sh stop
-./config.sh remove --token YOUR-TOKEN
-# Download new version and reconfigure
-sudo ./svc.sh install
-sudo ./svc.sh start
 ```
 
 ---
 
-## Advanced
+## Backup/Restore
 
-### Backup World
+### Backup
 ```bash
-docker run --rm \
-  -v minecraft-world:/data \
-  -v $(pwd):/backup \
-  ubuntu tar czf /backup/backup-$(date +%Y%m%d).tar.gz /data
+# Announce to players and save
+docker exec -it minecraft-server screen -S minecraft -X stuff "say Backup starting...^M"
+docker exec -it minecraft-server screen -S minecraft -X stuff "save-all^M"
+sleep 5
+
+# Create backup
+docker run --rm -v minecraft-world:/data -v $(pwd):/backup ubuntu tar czf /backup/backup.tar.gz /data
+echo "Backup complete!"
 ```
 
-### Restore World
+### Restore
 ```bash
 docker stop minecraft-server
-docker run --rm \
-  -v minecraft-world:/data \
-  -v $(pwd):/backup \
-  ubuntu tar xzf /backup/backup-YYYYMMDD.tar.gz -C /
+docker run --rm -v minecraft-world:/data -v $(pwd):/backup ubuntu tar xzf /backup/backup.tar.gz -C /
 docker start minecraft-server
 ```
 
-### View Live Logs
+---
+
+## Server Management Tips
+
+### Screen Session Commands
 ```bash
-docker logs -f minecraft-server
+# List screen sessions
+docker exec minecraft-server screen -ls
+
+# Send command to server (without attaching)
+docker exec -it minecraft-server screen -S minecraft -X stuff "say Hello!^M"
+
+# View logs without attaching
+docker exec minecraft-server screen -S minecraft -X hardcopy /tmp/screen.log
+docker exec minecraft-server cat /tmp/screen.log
 ```
 
-### Access Console
+### Restart Server (from console)
 ```bash
-docker attach minecraft-server
-# Press Ctrl+P then Ctrl+Q to detach without stopping
+# Attach to console
+docker exec -it minecraft-server screen -r minecraft
+
+# Type in console:
+/stop
+
+# Then restart container
+docker start minecraft-server
 ```
 
 ---
 
-## How It Works
-
-1. You click "Run workflow" in GitHub
-2. GitHub sends job to your self-hosted runner
-3. Runner (on your home server) executes the workflow
-4. Workflow builds Docker image and starts container
-5. Server is live!
-
-All automatic, no manual commands needed!
-
----
-
-**That's it! Push button → Server deployed! 🚀**
+**Choose your platform and click to deploy! 🚀**

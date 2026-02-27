@@ -2,9 +2,9 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Java and tools
+# Install Java, tools, and screen
 RUN apt-get update && \
-    apt-get install -y curl jq openjdk-21-jdk-headless && \
+    apt-get install -y curl jq openjdk-21-jdk-headless screen && \
     rm -rf /var/lib/apt/lists/*
 
 # Create Minecraft directory
@@ -24,5 +24,14 @@ COPY server.properties .
 # Expose ports
 EXPOSE 22000 22001
 
-# Start server
-CMD ["java", "-Xms2G", "-Xmx4G", "-jar", "server.jar", "nogui"]
+# Create startup script
+RUN echo '#!/bin/bash\n\
+screen -dmS minecraft java -Xms2G -Xmx4G -jar server.jar nogui\n\
+echo "Server started in screen session: minecraft"\n\
+echo "Attach with: docker exec -it minecraft-server screen -r minecraft"\n\
+echo "Detach with: Ctrl+A then D"\n\
+# Keep container running\n\
+tail -f /dev/null' > /start.sh && chmod +x /start.sh
+
+# Start server in screen
+CMD ["/start.sh"]
